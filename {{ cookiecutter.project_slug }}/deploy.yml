@@ -1,0 +1,55 @@
+{% raw -%}
+#!/usr/bin/env ansible-playbook
+---
+- name: Deploy
+  hosts: all
+  strategy: free
+  gather_facts: false
+  vars:
+    env: prod
+    slug: "{{ project }}-{{ env }}"
+    prefix: /var/www/{{ slug }}
+    user: deploy
+    group: "{{ user }}"
+  tasks:
+    - name: remove existing virtualenv
+      file: path="{{ prefix }}/.venv" state=absent
+      tags: full
+
+    - name: upload directory {{ playbook_dir }} to {{ prefix }}
+      synchronize: src="{{ playbook_dir }}/" dest={{ prefix }}
+
+    - name: cleanup UV cache
+      command: uv cache clean
+      args:
+        chdir: "{{ prefix }}"
+      tags: full
+
+    - name: create virtualenv
+      shell: uv venv -q
+      args:
+        chdir: "{{ prefix }}"
+      tags: full
+
+    - name: install dependencies
+      shell: uv sync --frozen || uv sync --frozen --refresh
+      args:
+        chdir: "{{ prefix }}"
+
+    - name: check if env-{{ env }} file exists locally
+      local_action: stat path=env-{{ env }}
+      register: env_file
+
+    - name: copy secrets
+      copy: src=env-{{ env }} dest={{ prefix }}/.env owner={{ user }} group={{ group }} mode=0400
+      when: env_file.stat.exists
+      ignore_errors: true
+
+    - name: install supervisor config
+      file: state=link src={{ prefix }}/supervisor.conf dest=/etc/supervisor/conf.d/{{ slug }}.conf
+      tags: full
+
+    - name: restart process
+      supervisorctl: name="{{ slug }}" state=restarted
+      tags: restart
+{% endraw -%}

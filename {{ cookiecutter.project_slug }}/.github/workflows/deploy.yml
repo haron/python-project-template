@@ -1,0 +1,41 @@
+{% raw -%}
+name: Deploy
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    container:
+      image: alpine/ansible:2.18.1
+      options: --cap-add=NET_ADMIN --device=/dev/net/tun
+    env:
+      ANSIBLE_HOST_KEY_CHECKING: "False"
+      ANSIBLE_PRIVATE_KEY_FILE: ~/.ssh/id_ed25519
+      UV_LINK_MODE: copy
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - run: apk add make coreutils curl sudo tar
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - uses: tailscale/github-action@v3
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+
+      - name: Deploy
+        uses: dawidd6/action-ansible-playbook@v3
+        with:
+          playbook: deploy.yml
+          inventory: {{ cookiecutter.deploy_host }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+{% endraw -%}

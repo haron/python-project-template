@@ -1,0 +1,16 @@
+[project]
+name = "{{ cookiecutter.project_name }}"
+version = "0.1.0"
+description = "{{ cookiecutter.description }}"
+authors = [
+  { name="{{ cookiecutter.author_name }}", email="{{ cookiecutter.author_email }}" },
+]
+requires-python = ">=3.13"
+dependencies = [
+    "sentry-sdk",
+    "django",
+    "django-extensions",
+    "dj-database-url",
+    "python-decouple",
+    "psycopg",
+]
