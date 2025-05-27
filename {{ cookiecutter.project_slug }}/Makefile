@@ -27,7 +27,8 @@ linter: githook
 	uvx ruff check -q --ignore F401 **/*.py
 
 githook:
-	uvx pre-commit install > /dev/null
+	echo -e "#!/bin/sh\nexec uvx -q pre-commit" > .git/hooks/pre-commit
+	chmod +x .git/hooks/pre-commit
 
 safety:
 	uv tool run safety scan -o bare
