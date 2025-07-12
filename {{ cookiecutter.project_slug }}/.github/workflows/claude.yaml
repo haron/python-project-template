@@ -1,0 +1,24 @@
+name: Claude PR Creation
+
+on:
+  issue_comment:
+    types: [created]
+
+# docs: https://docs.github.com/en/actions/how-tos/writing-workflows/choosing-what-your-workflow-does/controlling-permissions-for-github_token
+permissions:
+  contents: read
+  pull-requests: write
+  id-token: write
+
+jobs:
+  create-pr:
+    if: contains(github.event.comment.body, '@claude')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4    
+      - uses: anthropics/claude-code-action@beta
+        with:
+          prompt: "${{ github.event.comment.body }}"
+          allowed_tools: "Bash(git status),Bash(git log),Bash(git show),Bash(git blame),Bash(git reflog),Bash(git stash list),Bash(git ls-files),Bash(git branch),Bash(git tag),Bash(git diff),View,GlobTool,GrepTool,BatchTool"
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
